@@ -783,16 +783,23 @@ static int MutexLockWithTimeout(pthread_mutex_internal_t* mutex, bool use_realti
 }  // namespace NonPI
 
 static inline __always_inline bool IsMutexDestroyed(uint16_t mutex_state) {
-    return mutex_state == 0xffff;
+    if (android_get_application_target_sdk_version() >= __ANDROID_API_P__) {
+        return mutex_state == 0xffff;
+    }
+    return false;
 }
 
 // Inlining this function in pthread_mutex_lock() adds the cost of stack frame instructions on
 // ARM64. So make it noinline.
 static int __attribute__((noinline)) HandleUsingDestroyedMutex(pthread_mutex_t* mutex,
                                                                const char* function_name) {
-    if (android_get_application_target_sdk_version() >= __ANDROID_API_P__) {
-        __fortify_fatal("%s called on a destroyed mutex (%p)", function_name, mutex);
-    }
+    __fortify_fatal("%s called on a destroyed mutex (%p)", function_name, mutex);
+    return EBUSY;
+}
+
+static int __always_inline HandleUsingDestroyedMutex(pthread_mutex_t* mutex,
+                                                               const char* function_name) {
+    __fortify_fatal("%s called on a destroyed mutex (%p)", function_name, mutex);
     return EBUSY;
 }
 

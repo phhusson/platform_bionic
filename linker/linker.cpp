@@ -3861,7 +3861,9 @@ std::vector<android_namespace_t*> init_default_namespaces(const char* executable
   }
 
   uint32_t target_sdk = config->target_sdk_version();
-#ifdef SDK_VERSION_OVERRIDES
+
+  std::string sdkVersionOverrides = android::base::GetProperty("persist.sys.phh.sdk_override", "");
+  static const char *SDK_VERSION_OVERRIDES = sdkVersionOverrides.c_str();
   for (const auto& entry : android::base::Split(SDK_VERSION_OVERRIDES, " ")) {
     auto splitted = android::base::Split(entry, "=");
     if (splitted.size() == 2 && splitted[0] == executable_path) {
@@ -3870,7 +3872,7 @@ std::vector<android_namespace_t*> init_default_namespaces(const char* executable
     }
   }
   DEBUG("Target SDK for %s = %d", executable_path, target_sdk);
-#endif
+
   set_application_target_sdk_version(target_sdk);
 
   std::vector<android_namespace_t*> created_namespaces;

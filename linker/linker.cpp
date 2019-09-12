@@ -3372,7 +3372,10 @@ static std::string get_ld_config_file_apex_path(const char* executable_path) {
 }
 
 static std::string get_ld_config_file_vndk_path() {
-  if (android::base::GetBoolProperty("ro.vndk.lite", false)) {
+  bool same_version_system_vendor = false;
+  if(std::to_string(__ANDROID_API__) == Config::get_vndk_version_string('.'))
+    same_version_system_vendor = true;
+  if (android::base::GetBoolProperty("ro.vndk.lite", false) && same_version_system_vendor) {
     return kLdConfigVndkLiteFilePath;
   }
 

@@ -93,7 +93,6 @@ static uint64_t g_module_unload_counter = 0;
 static const char* const kLdConfigArchFilePath = "/system/etc/ld.config." ABI_STRING ".txt";
 
 static const char* const kLdConfigFilePath = "/system/etc/ld.config.txt";
-static const char* const kLdConfigVndkLiteFilePath = "/system/etc/ld.config.vndk_lite.txt";
 
 static const char* const kLdGeneratedConfigFilePath = "/linkerconfig/ld.config.txt";
 
@@ -3368,10 +3367,6 @@ static std::string get_ld_config_file_apex_path(const char* executable_path) {
 }
 
 static std::string get_ld_config_file_vndk_path() {
-  if (android::base::GetBoolProperty("ro.vndk.lite", false)) {
-    return kLdConfigVndkLiteFilePath;
-  }
-
   std::string ld_config_file_vndk = kLdConfigFilePath;
   size_t insert_pos = ld_config_file_vndk.find_last_of('.');
   if (insert_pos == std::string::npos) {

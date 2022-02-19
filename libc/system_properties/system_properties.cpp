@@ -35,6 +35,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <fcntl.h>
 
 #include <new>
 
@@ -49,6 +50,32 @@
 
 #define SERIAL_DIRTY(serial) ((serial)&1)
 #define SERIAL_VALUE_LEN(serial) ((serial) >> 24)
+
+static char comm[128];
+static bool self_ok = false;
+static char comm_override[PROP_VALUE_MAX];
+
+static void read_self() {
+  //NB: Not atomic, but should be good enough, there is no possible corruption from concurrency
+  if(self_ok) return;
+  self_ok = true;
+
+  int fd = open("/proc/self/comm", O_RDONLY);
+  if(fd<0) return;
+  read(fd, comm, sizeof(comm)-1);
+  for(unsigned i=0; i<sizeof(comm); i++)
+    if(comm[i] == '\n')
+      comm[i] = 0;
+  close(fd);
+
+  //That's calling ourselves but that's fine because we already have self_ok = true
+  char propName[PROP_NAME_MAX];
+  memset(propName, 0, PROP_NAME_MAX);
+  strncpy(propName, "debug.phh.props.", PROP_NAME_MAX - 1);
+  strncat(propName, comm, PROP_NAME_MAX - 1);
+
+  __system_property_get(propName, comm_override);
+}
 
 static bool is_dir(const char* pathname) {
   struct stat info;
@@ -216,6 +243,17 @@ void SystemProperties::ReadCallback(const prop_info* pi,
 }
 
 int SystemProperties::Get(const char* name, char* value) {
+  read_self();
+  if(strcmp(comm_override, "vendor") == 0) {
+    if(strcmp(name, "ro.product.device") == 0) {
+      int r = Get("ro.product.vendor.device", value);
+      if(r>0) return r;
+    }
+    if(strcmp(name, "ro.product.manufacturer") == 0) {
+      int r = Get("ro.product.vendor.manufacturer", value);
+      if(r>0) return r;
+    }
+  }
   const prop_info* pi = Find(name);
 
   if (pi != nullptr) {
